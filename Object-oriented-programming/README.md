@@ -10,8 +10,110 @@ So for our shapes, we want (at least) an interface that gives us two functions: 
 Implement this protocol/interface and the two functions for at least circles and rectangles; by all means, more shapes if you want to.
 
 ``` r
-## Your code and tests here
+# I have never worked with classes before, so I am trying to do it very detailed... 
+
+# Creating objects:
+
+## Triangule of equal sides
+triangule <- function(l){
+  obj <- list(l = l)
+  class(obj) <- 'triangule'
+  obj
+}
+
+## Circle
+circle <- function(r) {
+  obj <- list(r = r)
+  class(obj) <- 'circle'
+  obj
+}  
+
+
+## Squared retangule
+retangule <- function(l) {
+  obj <- list(l = l)
+  class(obj) <- 'retangule'
+  obj
+}
+
+area <- function(x) UseMethod('area')
+
+## Dealing with non-existing classes
+area.default <- function(x) print('This class is not supported')
+
+## Calculating areas for each case
+
+# circle
+area.circle <- function(x) pi*(x$r)^2
+# Squared retangule
+area.retangule <- function(x) x$l^2 
+# triangule of equal sides
+area.triangule <- function(x) (sqrt(3)/4)*(x$l)^2
+
+circumference <- function(x) UseMethod('circumference')
+
+## Dealing with unknown classes 
+circumference.default <- function(x) print('This class is not supported')
+
+## Calculating circunference for each case
+
+circumference.circle <- function(x) {
+  print('The circumference of the given shape is:')
+  2*pi*x$r
+}
+circumference.retangule <- function(x) {
+  print('The circumference of the given shape is:')
+  4*x$l
+}  
+circumference.triangule <- function(x) {
+  print('The circumference of the given shape is:')
+  3*x$l
+}
+## Testing 
+test_circ = circle(4)
+test_trian = triangule(4)
+test_retan = retangule(4)
+
+area(test_circ)
 ```
+
+    ## [1] 50.26548
+
+``` r
+area(test_trian)
+```
+
+    ## [1] 6.928203
+
+``` r
+area(test_retan)
+```
+
+    ## [1] 16
+
+``` r
+circumference(test_circ)
+```
+
+    ## [1] "The circumference of the given shape is:"
+
+    ## [1] 25.13274
+
+``` r
+circumference(test_trian)
+```
+
+    ## [1] "The circumference of the given shape is:"
+
+    ## [1] 12
+
+``` r
+circumference(test_retan)
+```
+
+    ## [1] "The circumference of the given shape is:"
+
+    ## [1] 16
 
 ### Polynomials
 
