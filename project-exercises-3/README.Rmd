@@ -27,9 +27,101 @@ blm <- function(model, ...) {
 ```
 
 To get this version of `blm` to work you need to get the prior in a form you can pass along to `update` but if you did the exercises earlier you should already have a function that does this (although you might want to create a class for these distributions and return them as such so you can manipulate them through an interface if you want to take it a bit further).
+```{r}
+# Importing useful functions
+
+## Prior (Likelihhod Distribution) p(Data|w)
+make_prior <- function(alpha) {
+
+  #res = function(n = 1) mvrnorm(n, mu = c(0,0), Sigma = diag(1/alpha, nrow = 2))
+  return(alpha)
+}
+
+## Posterior Distribution p(w|Data)p(w)
+make_posterior <-function(formula, alpha, beta, ...){
+  theta_x = model_matrix(formula, ...)
+  
+  S_xy_inv = diag(alpha, nrow = ncol(theta_x)) + beta * t(theta_x) %*% theta_x
+  
+  # Inverting back the matrix by solving it
+  S_xy = solve(S_xy_inv)
+  m_xy = beta * S_xy %*% t(theta_x) %*% y
+  
+  return(list(S_xy = S_xy, m_xy = m_xy))
+}
+
+## Sampling from posterior
+sample_from_posterior <- function(n, formula, alpha, beta) {
+  # specialize a function by n
+  stat = make_posterior(formula, alpha, beta)
+  S_xy = stat$S_xy
+  m_xy = stat$m_xy
+
+  res <- as.data.frame(mvrnorm(n, mu=m_xy, Sigma=S_xy))
+  w_names = sprintf("w%d", 0:(ncol(res)-1)) 
+  colnames(res) = w_names
+  return(res)
+}
+
+## Dealing with formulas 
+model_matrix <- function(formula, ...){
+  model.matrix(formula, ...)
+}
+
+## 
+noresponse_matrix <- function(formula, ...){
+  responseless = delete.response(terms(formula))
+  
+  data_frame = model.frame(responseless, ...)
+  
+  res = model.matrix(responseless, data_frame)
+  return(res) 
+}
+
+##
+predict <- function(formula, posterior, beta, ...) {
+  
+  theta_x = noresponse_matrix(formula)
+
+  m_xy = posterior$m_xy
+  S_xy = posterior$S_xy
+
+  # Dealing with many data points:
+  sds = vector(length = nrow(theta_x))
+  means = vector(length = nrow(theta_x))
+  
+  for(i in seq_along(sds)){      
+    S_xxy = 1/beta + (t(theta_x[i,]) %*% S_xy %*% theta_x[i,])
+    sds[i] = sqrt(S_xxy)
+  }
+  
+  for(i in seq_along(means)){
+    means[i] = sum(t(m_xy) %*% theta_x[i,])
+  }
+  return(list(sds = sds, means = means))
+  
+}
+
+
+```
+
 
 ```{r}
-# YOUR IMPLEMENTATION HERE
+# Creating the class blm
+
+update <- function(model, prior, ...){
+  
+  obj = make_posterior(model, prior, beta, ...)
+}
+blm <- function(model, ...) {
+  prior <- make_prior(alpha) # it returns alpha
+  posterior <- update(model, prior, ...)
+    # some code that returns an object here...
+  obj <- list(mean = mean)
+  class(obj) <- 'blm'
+  obj
+}
+  
 ```
 
 ### Model methods
@@ -48,6 +140,14 @@ Return the result as a numeric vector with the parameters named. That would fit 
 
 ```{r}
 # YOUR IMPLEMENTATION
+x <- runif(10)
+y <- rnorm(10, mean=x)
+
+# Looking at lm function to get some inspiration
+test = lm( x ~ y)
+test$coefficients
+
+
 ```
 
 #### confint
@@ -59,7 +159,14 @@ If our posterior is distributed as $\mathbf{w} \sim N(\mathbf{m},\mathbf{S})$ th
 You take the `level` parameter of the function and get the threshold quantiles by exploiting that a normal distribution is symmetric. So you want the quantiles to be `c(level/2, 1-level/2)`. From that, you can get the thresholds using the function `qnorm`.
 
 ```{r}
-# YOUR IMPLEMENTATION
+confint <- function(x, level, posterior, beta) {
+  newdist = predict(x, posterior, beta)
+  quantil = qnorm(c(level/2, 1-level/2), mean = newdist$mean, sd = newdist$sd_xxy, lower.tail = F)
+  return(quantil)
+}
+
+# Vectorizing X
+confint <- Vectorize(confint, vectorize.args = 'x')
 ```
 
 #### deviance
@@ -67,7 +174,7 @@ You take the `level` parameter of the function and get the threshold quantiles b
 This function just computes the sum of squared distances from the predicted response variables to the observed. This should be easy enough to compute if you could get the squared distances, or even if you only had the distances and had to square them yourself. Perhaps there is a function that gives you that?
 
 ```{r}
-# YOUR IMPLEMENTATION
+
 ```
 
 #### fitted
@@ -83,7 +190,12 @@ This function should give you the fitted response variables. This is *not* the r
 This function plots your model. You are pretty free to decide how you want to plot it, but I could imagine that it would be useful to see an x-y plot with a line going through it for the fit. If there are more than one predictor variable, though, I am not sure what would be a good way to visualise the fitted model. There are no explicit rules for what the `plot` function should do, except for plotting something so you can use your imagination.
 
 ```{r}
-# YOUR IMPLEMENTATION
+# Plot for lm has a LOT of information
+plot(test)
+# 1- residuals versus fitted data
+# 2- q-q plot (theoretical quantiles versus standardized residuals)
+# 3- third graph i do not understand much
+# 4- Residuals versus leverage
 ```
 
 #### predict
@@ -97,7 +209,17 @@ predict(object, ...)
 but the convention is that you give it new data in a variable `newdata`. If you do not provide new data, it instead gives you the predictions on the data used to fit the model.
 
 ```{r}
-# YOUR IMPLEMENTATION
+# Testing it
+
+x <- runif(10)
+y <- rnorm(10, mean=x)
+
+posterior <- make_posterior(y ~ x, 1.3, 1)
+
+newdata <- data.frame(x=runif(5))
+
+predict(y ~ x, posterior = posterior, beta = 1, newdata)
+
 ```
 
 #### print
@@ -109,7 +231,8 @@ For fitted objects, it customarily prints how the fitting function was called an
 If you want to print how the fitting function was called you need to get that from when you fit the object in the `blm` constructor. It is how the constructor was called that is of interest, after all. Inside that function, you can get the way it was called by using the function `sys.call`.
 
 ```{r}
-# YOUR IMPLEMENTATION
+# Print gives the called function and the coefficients 
+print(test)
 ```
 
 #### residuals
@@ -117,7 +240,10 @@ If you want to print how the fitting function was called you need to get that fr
 This function returns the residuals of the fit. That is the difference between predicted values and observed values for the response variable.
 
 ```{r}
-# YOUR IMPLEMENTATION
+predict(y ~ x, posterior = posterior, beta = 1, newdata)
+y
+x
+test$residuals
 ```
 
 #### summary
@@ -127,6 +253,8 @@ This function is usually used as a longer version of print. It gives you more in
 It does more than this, however. It returns an object with summary information. What that actually means is up to the model implementation so do what you like here.
 
 ```{r}
-# YOUR IMPLEMENTATION
+# As the name says, the summary function should be summary ofeverything
+summary(test)
+
 ```
 
