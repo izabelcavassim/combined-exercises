@@ -124,7 +124,7 @@ make_prior <- function(model, alpha, ...){
 update <- function(model, prior, alpha, beta, ...){
   parameters <- list(...)
 
-  #if(alpha | beta  < 0) stop('alpha and beta must be positive!')
+  if(alpha < 0 || beta  < 0) stop('alpha and beta must be positive!')
   
   data <- model.frame(model)
   theta_x = noresponse_matrix(model)
@@ -177,7 +177,7 @@ y <- rnorm(10, mean=x)
 
 test = blm(x ~ y, alpha = 1.2, beta = 1.3)
 # Creating the polymorphic function and adding an alias to it:
-coefficients.blm <- coef.blm <- function(object, ...) object$coefficients
+coefficients.blm <- coef.blm <- function(object, ...) t(object$coefficients)
 
 # Test
 coefficients.blm(test)
@@ -198,7 +198,6 @@ You take the `level` parameter of the function and get the threshold quantiles b
 confint.blm <- function(object, level= 50, ...) {
   posterior = object$posterior
   beta = object$beta
-  
   newdist <- predict.blm(posterior, beta)
   quantil <- qnorm(c(level/2, 1-level/2), mean = newdist$mean, sd = newdist$sd_xxy, lower.tail = F)
   
@@ -252,7 +251,6 @@ predict(object, ...)
 but the convention is that you give it new data in a variable `newdata`. If you do not provide new data, it instead gives you the predictions on the data used to fit the model.
 
 ```{r}
-
 predict.blm <- function(object, ...) {
   formula = object$model
   posterior = object$posterior
@@ -279,21 +277,17 @@ predict.blm <- function(object, ...) {
   return(list(sds = sds, means = means))
   
 }
-# testing
-newdata <- data.frame(x=runif(3))
 
-#predict.blm(test, newdata)
 
 # Testing it
 
 x <- runif(10)
 y <- rnorm(10, mean=x)
 
-posterior <- make_posterior(y ~ x, 1.3, 1)
+# testing
+newdata <- data.frame(x=runif(3))
 
-newdata <- data.frame(x=runif(5))
-
-#predict(y ~ x, posterior = posterior, beta = 1, newdata)
+predict.blm(test, newdata)
 
 
 ```
@@ -342,6 +336,40 @@ It does more than this, however. It returns an object with summary information. 
 # As the name says, the summary function should be summary of everything
 getAnywhere(summary.lm)
 summary(test)
+
+# The easiest way:
+summary.blm <- function(object, ...) {
+  sapply(object$data, summary)
+   cat('\nCall:\n')
+  print(object$sys)
+  
+  cat('\nResiduals:\n')
+  print('Nothing yet')
+  #sapply(object$residuals, summary) 
+  
+  cat('\nCoefficients:\n')
+  print('Estimate, Std error, t value, Pr(>|t|)')
+
+  cat('\nResidual standard error, numberX, on numberZ degrees of freedom\n')
+  cat('\nMultiple R-squared:\n')
+  cat('Adjusted R-squared:\n')
+  
+} 
+summary.blm(test)
+# The hard and freedom way
+
+## Creating Classes of summary
+# Using the same arguments as summary and creating a summary custom class
+args(summary)
+
+summary.customclass <- function(object, ...){
+  cat('\nCall:\n')
+  print(object$sys)
+  
+  cat('\nCoefficients:\n')
+  t(object$coefficients) 
+}
+
 
 ```
 
