@@ -36,6 +36,7 @@ retangule <- function(l) {
   obj
 }
 
+## Creating the polymorphic function area:
 area <- function(x) UseMethod('area')
 
 ## Dealing with non-existing classes
@@ -50,6 +51,7 @@ area.retangule <- function(x) x$l^2
 # triangule of equal sides
 area.triangule <- function(x) (sqrt(3)/4)*(x$l)^2
 
+## Creating circumference polymorhphic function
 circumference <- function(x) UseMethod('circumference')
 
 ## Dealing with unknown classes 
