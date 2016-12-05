@@ -31,15 +31,15 @@ To get this version of `blm` to work you need to get the prior in a form you can
 # Importing useful functions
 
 ## Prior (Likelihhod Distribution) p(Data|w)
-make_prior <- function(alpha) {
-
-  #res = function(n = 1) mvrnorm(n, mu = c(0,0), Sigma = diag(1/alpha, nrow = 2))
-  return(alpha)
+make_prior <- function(model, alpha, ...) {
+  
+  res = function(n = 1) mvrnorm(n, mu = c(0,0), Sigma = diag(1/alpha, nrow = 2))
+  return(res)
 }
 
 ## Posterior Distribution p(w|Data)p(w)
-make_posterior <-function(formula, alpha, beta, ...){
-  theta_x = model_matrix(formula, ...)
+make_posterior <-function(model, alpha, beta, ...){
+  theta_x = model_matrix(model, ...)
   
   S_xy_inv = diag(alpha, nrow = ncol(theta_x)) + beta * t(theta_x) %*% theta_x
   
@@ -51,9 +51,9 @@ make_posterior <-function(formula, alpha, beta, ...){
 }
 
 ## Sampling from posterior
-sample_from_posterior <- function(n, formula, alpha, beta) {
+sample_from_posterior <- function(n, model, alpha, beta, ...) {
   # specialize a function by n
-  stat = make_posterior(formula, alpha, beta)
+  stat = make_posterior(model, alpha, beta)
   S_xy = stat$S_xy
   m_xy = stat$m_xy
 
@@ -63,14 +63,14 @@ sample_from_posterior <- function(n, formula, alpha, beta) {
   return(res)
 }
 
-## Dealing with formulas 
-model_matrix <- function(formula, ...){
-  model.matrix(formula, ...)
+## Dealing with models 
+model_matrix <- function(model, ...){
+  model.matrix(model, ...)
 }
 
 ## 
-noresponse_matrix <- function(formula, ...){
-  responseless = delete.response(terms(formula))
+noresponse_matrix <- function(model, ...){
+  responseless = delete.response(terms(model))
   
   data_frame = model.frame(responseless, ...)
   
@@ -79,9 +79,13 @@ noresponse_matrix <- function(formula, ...){
 }
 
 ##
-predict <- function(formula, posterior, beta, ...) {
+predict.blm <- function(object, ...) {
+  formula = object$formula
+  posterior = object$posterior
+  beta = object$beta
   
-  theta_x = noresponse_matrix(formula)
+  # Generalizing theta for old and new data (using '...' method)
+  theta_x = noresponse_matrix(formula, ...)
 
   m_xy = posterior$m_xy
   S_xy = posterior$S_xy
@@ -89,16 +93,16 @@ predict <- function(formula, posterior, beta, ...) {
   # Dealing with many data points:
   sds = vector(length = nrow(theta_x))
   means = vector(length = nrow(theta_x))
+  var = vector(length = nrow(theta_x))
   
   for(i in seq_along(sds)){      
     S_xxy = 1/beta + (t(theta_x[i,]) %*% S_xy %*% theta_x[i,])
     sds[i] = sqrt(S_xxy)
-  }
-  
-  for(i in seq_along(means)){
+    var[i] = S_xxy
     means[i] = sum(t(m_xy) %*% theta_x[i,])
   }
-  return(list(sds = sds, means = means))
+  
+  return(list(sds = sds, means = means, S_xy = var))
   
 }
 
@@ -109,15 +113,44 @@ predict <- function(formula, posterior, beta, ...) {
 ```{r}
 # Creating the class blm
 
-update <- function(model, prior, ...){
+make_prior <- function(model, alpha, ...){
+  parameters <- list(...)
+  if (alpha < 0) stop('alpha must be positive!')
   
-  obj = make_posterior(model, prior, beta, ...)
+  model <- model.matrix(model)
+  return(list(m_xy = rep(0, ncol(model)), S_xy = diag(1/alpha, nrow = ncol(model), alpha)))
 }
+
+update <- function(model, prior, alpha, beta, ...){
+  parameters <- list(...)
+
+  #if(alpha | beta  < 0) stop('alpha and beta must be positive!')
+  
+  data <- model.frame(model)
+  theta_x = noresponse_matrix(model)
+  S_xy <- solve(diag(alpha, nrow = ncol(theta_x)) + beta * t(theta_x) %*% theta_x)
+  m_xy <- beta * S_xy %*% t(theta_x) %*% y
+  return(list(m_xy=m_xy, S_xy=S_xy))
+  
+}
+
 blm <- function(model, ...) {
-  prior <- make_prior(alpha) # it returns alpha
-  posterior <- update(model, prior, ...)
-    # some code that returns an object here...
-  obj <- list(mean = mean)
+  parameters <- list(...)
+  alpha = parameters$alpha
+  beta = parameters$beta
+  prior <- make_prior(model, alpha,...) # it returns alpha
+  posterior <- update(model, prior, beta, ...)
+
+  # Defining the class blm
+  obj <- list(data = model.frame(model),
+              variances = posterior$S_xy,
+              prior = prior,
+              alpha = alpha,
+              beta = beta,
+              posterior = posterior,
+              formula = model,
+              sys = sys.call(),
+              coefficients = posterior$m_xy)
   class(obj) <- 'blm'
   obj
 }
@@ -139,15 +172,16 @@ This function should return fitted parameters of the model. It is not entirely s
 Return the result as a numeric vector with the parameters named. That would fit what you get from `lm`.
 
 ```{r}
-# YOUR IMPLEMENTATION
 x <- runif(10)
 y <- rnorm(10, mean=x)
 
-# Looking at lm function to get some inspiration
-test = lm( x ~ y)
-test$coefficients
+test = blm(x ~ y, alpha = 1.2, beta = 1.3)
+# Creating the polymorphic function and adding an alias to it:
+coefficients.blm <- coef.blm <- function(object, ...) object$coefficients
 
-
+# Test
+coefficients.blm(test)
+coef.blm(test)
 ```
 
 #### confint
@@ -159,14 +193,21 @@ If our posterior is distributed as $\mathbf{w} \sim N(\mathbf{m},\mathbf{S})$ th
 You take the `level` parameter of the function and get the threshold quantiles by exploiting that a normal distribution is symmetric. So you want the quantiles to be `c(level/2, 1-level/2)`. From that, you can get the thresholds using the function `qnorm`.
 
 ```{r}
-confint <- function(x, level, posterior, beta) {
-  newdist = predict(x, posterior, beta)
-  quantil = qnorm(c(level/2, 1-level/2), mean = newdist$mean, sd = newdist$sd_xxy, lower.tail = F)
+
+
+confint.blm <- function(object, level= 50, ...) {
+  posterior = object$posterior
+  beta = object$beta
+  
+  newdist <- predict.blm(posterior, beta)
+  quantil <- qnorm(c(level/2, 1-level/2), mean = newdist$mean, sd = newdist$sd_xxy, lower.tail = F)
+  
+  # It returns mean and sd
   return(quantil)
 }
 
-# Vectorizing X
-confint <- Vectorize(confint, vectorize.args = 'x')
+# Test
+#confint.blm(test)
 ```
 
 #### deviance
@@ -174,7 +215,7 @@ confint <- Vectorize(confint, vectorize.args = 'x')
 This function just computes the sum of squared distances from the predicted response variables to the observed. This should be easy enough to compute if you could get the squared distances, or even if you only had the distances and had to square them yourself. Perhaps there is a function that gives you that?
 
 ```{r}
-
+#deviance.blm <- function(object, ...)
 ```
 
 #### fitted
@@ -182,7 +223,7 @@ This function just computes the sum of squared distances from the predicted resp
 This function should give you the fitted response variables. This is *not* the response variables in the data you fitted the model to, but instead the predictions that the model makes.
 
 ```{r}
-# YOUR IMPLEMENTATION
+#fitted.blm <- function(object, ...)
 ```
 
 #### plot
@@ -190,8 +231,10 @@ This function should give you the fitted response variables. This is *not* the r
 This function plots your model. You are pretty free to decide how you want to plot it, but I could imagine that it would be useful to see an x-y plot with a line going through it for the fit. If there are more than one predictor variable, though, I am not sure what would be a good way to visualise the fitted model. There are no explicit rules for what the `plot` function should do, except for plotting something so you can use your imagination.
 
 ```{r}
+
+#plot.blm <- function(object, ...)
 # Plot for lm has a LOT of information
-plot(test)
+#plot(test)
 # 1- residuals versus fitted data
 # 2- q-q plot (theoretical quantiles versus standardized residuals)
 # 3- third graph i do not understand much
@@ -209,6 +252,38 @@ predict(object, ...)
 but the convention is that you give it new data in a variable `newdata`. If you do not provide new data, it instead gives you the predictions on the data used to fit the model.
 
 ```{r}
+
+predict.blm <- function(object, ...) {
+  formula = object$model
+  posterior = object$posterior
+  beta = object$beta
+  
+  # Generalizing theta for old and new data (using '...' method)
+  theta_x = noresponse_matrix(formula, ...)
+
+  m_xy = posterior$m_xy
+  S_xy = posterior$S_xy
+
+  # Dealing with many data points:
+  sds = vector(length = nrow(theta_x))
+  means = vector(length = nrow(theta_x))
+  
+  for(i in seq_along(sds)){      
+    S_xxy = 1/beta + (t(theta_x[i,]) %*% S_xy %*% theta_x[i,])
+    sds[i] = sqrt(S_xxy)
+  }
+  
+  for(i in seq_along(means)){
+    means[i] = sum(t(m_xy) %*% theta_x[i,])
+  }
+  return(list(sds = sds, means = means))
+  
+}
+# testing
+newdata <- data.frame(x=runif(3))
+
+#predict.blm(test, newdata)
+
 # Testing it
 
 x <- runif(10)
@@ -218,7 +293,8 @@ posterior <- make_posterior(y ~ x, 1.3, 1)
 
 newdata <- data.frame(x=runif(5))
 
-predict(y ~ x, posterior = posterior, beta = 1, newdata)
+#predict(y ~ x, posterior = posterior, beta = 1, newdata)
+
 
 ```
 
@@ -232,7 +308,18 @@ If you want to print how the fitting function was called you need to get that fr
 
 ```{r}
 # Print gives the called function and the coefficients 
-print(test)
+bla = lm(y ~ x)
+print(bla)
+
+print.blm <- function(object, ...){
+  cat('\nCall:\n')
+  print(object$sys)
+  
+  cat('\nCoefficients:\n')
+  t(object$coefficients) 
+}
+
+print.blm(test)
 ```
 
 #### residuals
@@ -240,10 +327,9 @@ print(test)
 This function returns the residuals of the fit. That is the difference between predicted values and observed values for the response variable.
 
 ```{r}
-predict(y ~ x, posterior = posterior, beta = 1, newdata)
-y
-x
-test$residuals
+
+
+
 ```
 
 #### summary
@@ -253,7 +339,8 @@ This function is usually used as a longer version of print. It gives you more in
 It does more than this, however. It returns an object with summary information. What that actually means is up to the model implementation so do what you like here.
 
 ```{r}
-# As the name says, the summary function should be summary ofeverything
+# As the name says, the summary function should be summary of everything
+getAnywhere(summary.lm)
 summary(test)
 
 ```
