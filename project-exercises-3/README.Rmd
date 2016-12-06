@@ -112,32 +112,31 @@ predict.blm <- function(object, ...) {
 
 ```{r}
 # Creating the class blm
-
 make_prior <- function(model, alpha, ...){
-  parameters <- list(...)
+  arguments <- list(...)
   if (alpha < 0) stop('alpha must be positive!')
   
   model <- model.matrix(model)
-  return(list(m_xy = rep(0, ncol(model)), S_xy = diag(1/alpha, nrow = ncol(model), alpha)))
+  return(list(m_xy = rep(0, ncol(model)), S_xy = diag(1/alpha, nrow = ncol(model))))
 }
 
 update <- function(model, prior, alpha, beta, ...){
-  parameters <- list(...)
+  arguments <- list(...)
 
   if(alpha < 0 || beta  < 0) stop('alpha and beta must be positive!')
   
   data <- model.frame(model)
   theta_x = noresponse_matrix(model)
-  S_xy <- solve(diag(alpha, nrow = ncol(theta_x)) + beta * t(theta_x) %*% theta_x)
+  S_xy <- solve(prior$S_xy + beta * t(theta_x) %*% theta_x)
   m_xy <- beta * S_xy %*% t(theta_x) %*% y
   return(list(m_xy=m_xy, S_xy=S_xy))
   
 }
 
 blm <- function(model, ...) {
-  parameters <- list(...)
-  alpha = parameters$alpha
-  beta = parameters$beta
+  arguments <- list(...)
+  alpha = arguments$alpha
+  beta = arguments$beta
   prior <- make_prior(model, alpha,...) # it returns alpha
   posterior <- update(model, prior, beta, ...)
 
@@ -167,78 +166,27 @@ In all cases, read the R documentation for the generic function first. You need 
 
 #### coefficients
 
-This function should return fitted parameters of the model. It is not entirely straightforward to interpret what that means with our Bayesian models where a fitted model is a distribution and not a single point parameter. We could let the function return the fitted distribution, but the way this function is typically used that would make it useless for existing code to access the fitted parameters for this model as a drop in replacement for the corresponding parameters from a `lm` model, for example. Instead, it is probably better to return the point estimates of the parameters which would be the mean of the posterior you compute when fitting.
+This function should return fitted arguments of the model. It is not entirely straightforward to interpret what that means with our Bayesian models where a fitted model is a distribution and not a single point parameter. We could let the function return the fitted distribution, but the way this function is typically used that would make it useless for existing code to access the fitted arguments for this model as a drop in replacement for the corresponding arguments from a `lm` model, for example. Instead, it is probably better to return the point estimates of the arguments which would be the mean of the posterior you compute when fitting.
 
-Return the result as a numeric vector with the parameters named. That would fit what you get from `lm`.
+Return the result as a numeric vector with the arguments named. That would fit what you get from `lm`.
 
 ```{r}
-x <- runif(10)
-y <- rnorm(10, mean=x)
+x <- runif(30)
+y <- rnorm(30, mean=x)
 
-test = blm(x ~ y, alpha = 1.2, beta = 1.3)
+test_blm = blm(y ~ x, alpha = 1.5, beta = 2)
+test_lm = lm( y ~ x)
 # Creating the polymorphic function and adding an alias to it:
 coefficients.blm <- coef.blm <- function(object, ...) t(object$coefficients)
 
-# Test
-coefficients.blm(test)
-coef.blm(test)
+# Test blm
+coefficients(test_blm)
+coef(test_blm)
+
+# Test lm
+coef(test_lm)
 ```
 
-#### confint
-
-The function `confint` gives you confidence intervals for the fitted parameters. Here we have the same issue as with `coefficients`: we infer an entire distribution and not a parameter (and in any case, our parameters do not have confidence intervals; they have a joint distribution). Nevertheless, we can compute the analogue to confidence intervals from the distribution we have inferred.
-
-If our posterior is distributed as $\mathbf{w} \sim N(\mathbf{m},\mathbf{S})$ then component $i$ of the weight vector is distributed as $w_i \sim N(m_i,\mathbf{S}_{i,i})$. From this, and the desired fraction of density you want, you can pull out the thresholds that match the quantiles you need.
-
-You take the `level` parameter of the function and get the threshold quantiles by exploiting that a normal distribution is symmetric. So you want the quantiles to be `c(level/2, 1-level/2)`. From that, you can get the thresholds using the function `qnorm`.
-
-```{r}
-
-
-confint.blm <- function(object, level= 50, ...) {
-  posterior = object$posterior
-  beta = object$beta
-  newdist <- predict.blm(posterior, beta)
-  quantil <- qnorm(c(level/2, 1-level/2), mean = newdist$mean, sd = newdist$sd_xxy, lower.tail = F)
-  
-  # It returns mean and sd
-  return(quantil)
-}
-
-# Test
-#confint.blm(test)
-```
-
-#### deviance
-
-This function just computes the sum of squared distances from the predicted response variables to the observed. This should be easy enough to compute if you could get the squared distances, or even if you only had the distances and had to square them yourself. Perhaps there is a function that gives you that?
-
-```{r}
-#deviance.blm <- function(object, ...)
-```
-
-#### fitted
-
-This function should give you the fitted response variables. This is *not* the response variables in the data you fitted the model to, but instead the predictions that the model makes.
-
-```{r}
-#fitted.blm <- function(object, ...)
-```
-
-#### plot
-
-This function plots your model. You are pretty free to decide how you want to plot it, but I could imagine that it would be useful to see an x-y plot with a line going through it for the fit. If there are more than one predictor variable, though, I am not sure what would be a good way to visualise the fitted model. There are no explicit rules for what the `plot` function should do, except for plotting something so you can use your imagination.
-
-```{r}
-
-#plot.blm <- function(object, ...)
-# Plot for lm has a LOT of information
-#plot(test)
-# 1- residuals versus fitted data
-# 2- q-q plot (theoretical quantiles versus standardized residuals)
-# 3- third graph i do not understand much
-# 4- Residuals versus leverage
-```
 
 #### predict
 
@@ -251,44 +199,184 @@ predict(object, ...)
 but the convention is that you give it new data in a variable `newdata`. If you do not provide new data, it instead gives you the predictions on the data used to fit the model.
 
 ```{r}
+
 predict.blm <- function(object, ...) {
-  formula = object$model
+
+  formula = object$formula
   posterior = object$posterior
   beta = object$beta
   
-  # Generalizing theta for old and new data (using '...' method)
   theta_x = noresponse_matrix(formula, ...)
 
+  # Generalizing theta for old and new data (using '...' method)
   m_xy = posterior$m_xy
   S_xy = posterior$S_xy
 
   # Dealing with many data points:
-  sds = vector(length = nrow(theta_x))
   means = vector(length = nrow(theta_x))
   
-  for(i in seq_along(sds)){      
+  for(i in seq_along(means)){      
+    means[i] = sum(t(m_xy) %*% theta_x[i,])
+  }
+
+  return(list(means = means))
+}
+
+# Testing it
+newdata <- data.frame(x=runif(3))
+
+# blm method
+predict(test_blm, newdata)
+
+# lm method
+predict(test_lm, newdata)
+
+# blm method
+predict(test_blm)
+
+# lm method
+predict(test_lm)
+
+
+```
+
+
+#### fitted
+
+This function should give you the fitted response variables. This is *not* the response variables in the data you fitted the model to, but instead the predictions that the model makes.
+
+```{r}
+# You can only put the old data here, the newdata will be ignored in the predict function 
+fitted.blm <- function(object, ...) {
+  fit <- predict(object)
+  fit
+}
+
+# Test blm
+fitted(test_blm)
+
+# Even if I give new data it is not going to do anything with it:
+fitted(test_blm, newdata)
+
+# Test lm
+fitted(test_lm)
+
+# How does lm deal with it?
+fitted(test_lm, newdata)
+
+# Don't care like I do. :)
+```
+#### confint
+
+The function `confint` gives you confidence intervals for the fitted arguments. Here we have the same issue as with `coefficients`: we infer an entire distribution and not a parameter (and in any case, our arguments do not have confidence intervals; they have a joint distribution). Nevertheless, we can compute the analogue to confidence intervals from the distribution we have inferred.
+
+If our posterior is distributed as $\mathbf{w} \sim N(\mathbf{m},\mathbf{S})$ then component $i$ of the weight vector is distributed as $w_i \sim N(m_i,\mathbf{S}_{i,i})$. From this, and the desired fraction of density you want, you can pull out the thresholds that match the quantiles you need.
+
+You take the `level` parameter of the function and get the threshold quantiles by exploiting that a normal distribution is symmetric. So you want the quantiles to be `c(level/2, 1-level/2)`. From that, you can get the thresholds using the function `qnorm`.
+
+```{r}
+
+confint.blm <- function(object, level= 0.95, ...) {
+  theta_x = noresponse_matrix(object$formula, ...)
+  beta = object$beta
+  S_xy = object$posterior$S_xy
+
+  # Calculating Standard deviation to be used in qnorm
+  sds = vector(length = nrow(theta_x))  
+
+  for(i in seq_along(sds)){  
     S_xxy = 1/beta + (t(theta_x[i,]) %*% S_xy %*% theta_x[i,])
     sds[i] = sqrt(S_xxy)
   }
   
-  for(i in seq_along(means)){
-    means[i] = sum(t(m_xy) %*% theta_x[i,])
-  }
-  return(list(sds = sds, means = means))
+  fitted <- predict(object, ...)
+  quantil_lower <- qnorm(p = (1-level)/2, mean = fitted$means, sd = sds, lower.tail = F)
+  quantil_upper <- qnorm(p = (1 - (1 -level)/2), mean = fitted$means, sd = sds, lower.tail = F)
   
+  quantiles = cbind(quantil_lower, quantil_upper)
+  colnames(quantiles) = c(print((1-level)/2), print((1 - (1 -level)/2)))
+  # It returns mean and sd
+  return(quantiles)
 }
 
+# Test blm
+confint(test_blm, level = 0.95)
 
-# Testing it
+# Test lm
+confint(test_lm)
+```
 
-x <- runif(10)
-y <- rnorm(10, mean=x)
+```{r}
 
-# testing
-newdata <- data.frame(x=runif(3))
+```
 
-predict.blm(test, newdata)
+#### deviance
 
+This function just computes the sum of squared distances from the predicted response variables to the observed. This should be easy enough to compute if you could get the squared distances, or even if you only had the distances and had to square them yourself. Perhaps there is a function that gives you that?
+
+```{r}
+deviance.blm <- function(object, ...){
+  observed = object$data[,1]
+  fit = fitted(object)$means
+  dev = (fit - observed)^2
+  sum(dev)
+}
+
+# Test blm
+deviance(test_blm)  
+
+# Test lm
+deviance(test_lm)
+```
+
+#### residuals
+
+This function returns the residuals of the fit. That is the difference between predicted values and observed values for the response variable.
+
+```{r}
+
+residuals.blm <- function(object, ...){
+  observed = object$data[,1]
+  x = as.data.frame(object$data[,2])
+  predicted = predict(object, x)$means
+  residuals = (observed - predicted) 
+  residuals
+}
+
+# Test it for blm
+residuals(test_blm)
+
+# Test it for lm
+residuals(test_lm)
+```
+
+#### plot
+
+This function plots your model. You are pretty free to decide how you want to plot it, but I could imagine that it would be useful to see an x-y plot with a line going through it for the fit. If there are more than one predictor variable, though, I am not sure what would be a good way to visualise the fitted model. There are no explicit rules for what the `plot` function should do, except for plotting something so you can use your imagination.
+
+```{r}
+
+plot.blm <- function(object, ...) {
+  data = object$data
+
+  if(is.null(data) == FALSE && ncol(data) == 2){
+   # plot(data[,2],data[,1], pch = 20, xlab = 'x', ylab = 'y')
+  #  abline(a = object$coefficients[1], b = object$coefficients[2], col="red")
+    
+    # First plot: fitted values vs residuals
+    fit = fitted(object)$means
+    resid = residuals(object)
+    plot(fit, resid, pch = 20, xlab = 'Fitted values', ylab = 'Residuals', main = 'Residuals vs Fitted') 
+    abline(h = 0, col = "gray60", lty = 2)
+  }
+}
+
+plot(test_blm)
+plot(test_lm)
+# 1- residuals versus fitted data
+# 2- q-q plot (theoretical quantiles versus standardized residuals)
+# 3- third graph i do not understand much
+# 4- Residuals versus leverage
 
 ```
 
@@ -301,10 +389,7 @@ For fitted objects, it customarily prints how the fitting function was called an
 If you want to print how the fitting function was called you need to get that from when you fit the object in the `blm` constructor. It is how the constructor was called that is of interest, after all. Inside that function, you can get the way it was called by using the function `sys.call`.
 
 ```{r}
-# Print gives the called function and the coefficients 
-bla = lm(y ~ x)
-print(bla)
-
+# Print gives/print the called function and the coefficients 
 print.blm <- function(object, ...){
   cat('\nCall:\n')
   print(object$sys)
@@ -313,17 +398,9 @@ print.blm <- function(object, ...){
   t(object$coefficients) 
 }
 
-print.blm(test)
-```
-
-#### residuals
-
-This function returns the residuals of the fit. That is the difference between predicted values and observed values for the response variable.
-
-```{r}
-
-
-
+# Test it
+print(test_blm)
+print(test_lm)
 ```
 
 #### summary
@@ -335,12 +412,12 @@ It does more than this, however. It returns an object with summary information. 
 ```{r}
 # As the name says, the summary function should be summary of everything
 getAnywhere(summary.lm)
-summary(test)
+summary(test_lm)
 
 # The easiest way:
 summary.blm <- function(object, ...) {
   sapply(object$data, summary)
-   cat('\nCall:\n')
+  cat('\nCall:\n')
   print(object$sys)
   
   cat('\nResiduals:\n')
@@ -355,12 +432,11 @@ summary.blm <- function(object, ...) {
   cat('Adjusted R-squared:\n')
   
 } 
-summary.blm(test)
+summary(test_blm)
 # The hard and freedom way
 
 ## Creating Classes of summary
 # Using the same arguments as summary and creating a summary custom class
-args(summary)
 
 summary.customclass <- function(object, ...){
   cat('\nCall:\n')
