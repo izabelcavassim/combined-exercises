@@ -237,7 +237,12 @@ predict(test_blm)
 # lm method
 predict(test_lm)
 
+# to make like lm
+x <- rnorm(30)
+names(x) <- seq(1, length(x))
 
+# to extract the indexes
+as.numeric(names(x[x > 0.45])) # or which
 ```
 
 
@@ -276,11 +281,14 @@ You take the `level` parameter of the function and get the threshold quantiles b
 
 ```{r}
 
-confint.blm <- function(object, level= 0.95, ...) {
+confint.blm <- function(object, parm = NULL, level= 0.95, ...) {
   theta_x = noresponse_matrix(object$formula, ...)
   beta = object$beta
   S_xy = object$posterior$S_xy
-
+  m_xy = object$posterior$m_xy
+  
+  if(parm == 'y'){
+    
   # Calculating Standard deviation to be used in qnorm
   sds = vector(length = nrow(theta_x))  
 
@@ -294,19 +302,44 @@ confint.blm <- function(object, level= 0.95, ...) {
   quantil_upper <- qnorm(p = (1 - (1 -level)/2), mean = fitted$means, sd = sds, lower.tail = F)
   
   quantiles = cbind(quantil_lower, quantil_upper)
-  colnames(quantiles) = c(print((1-level)/2), print((1 - (1 -level)/2)))
-  # It returns mean and sd
+  colnames(quantiles) = c((1-level)/2, (1 - (1 -level)/2))
+  
+  # it returns the confint of the fitted data
   return(quantiles)
+  }
+  
+  # Mean and variance of the coefficients
+  # I will give that as default
+  if(is.null(parm)){
+    parm = rownames(object$coefficients)
+  }
+  
+  quantil_lower <- qnorm(p = (1-level)/2, mean = m_xy[parm,], sd = sqrt(diag(S_xy)[parm]), lower.tail = F)
+  quantil_upper <- qnorm(p = (1 - (1 -level)/2), mean =m_xy[parm,], sd = sqrt(diag(S_xy)[parm]), lower.tail = F)
+  
+  quantiles = cbind(quantil_lower, quantil_upper)
+
+  colnames(quantiles) = c((1-level)/2, (1 - (1 -level)/2))
+  rownames(quantiles) = parm
+return(quantiles)  
 }
 
 # Test blm
-confint(test_blm, level = 0.95)
+confint(test_blm, parm = '(Intercept)', level = 0.95)
+
+# Test blm
+confint(test_blm, parm = 'y', level = 0.95)
+
+# Test blm
+confint(test_blm, parm = 'x', level = 0.95)
+
+# Test blm
+confint(test_blm, parm = 1, level = 0.95)
+
+# I want my confint function to accept any case of written 'intercept'
 
 # Test lm
 confint(test_lm)
-```
-
-```{r}
 
 ```
 
@@ -368,8 +401,18 @@ plot.blm <- function(object, ...) {
     resid = residuals(object)
     plot(fit, resid, pch = 20, xlab = 'Fitted values', ylab = 'Residuals', main = 'Residuals vs Fitted') 
     abline(h = 0, col = "gray60", lty = 2)
+    # I need to produce the red lines, but i don't know how
+  }
+  if(is.null(data) == FALSE && ncol(data) > 2){
+    # take the m_xy and make eigen decomposition of this matrix and select the variable that explains most of the variance
+    
   }
 }
+
+
+
+
+
 
 plot(test_blm)
 plot(test_lm)
@@ -411,20 +454,30 @@ It does more than this, however. It returns an object with summary information. 
 
 ```{r}
 # As the name says, the summary function should be summary of everything
-getAnywhere(summary.lm)
 summary(test_lm)
 
-# The easiest way:
 summary.blm <- function(object, ...) {
+  # Defining the class summary
+  obj <- list(data = object$data,
+              Call = object$sys,
+              Residuals = residuals(object),
+              Coefficients = object$coefficients)
+  class(obj) <- 'summary.blm'
+  obj
+}
+
+summary(test_blm)
+print.summary.blm <- function(object, ...) {
   sapply(object$data, summary)
   cat('\nCall:\n')
-  print(object$sys)
+  print(object$Call)
   
   cat('\nResiduals:\n')
-  print('Nothing yet')
+  print(summary(object$Residuals))
   #sapply(object$residuals, summary) 
   
   cat('\nCoefficients:\n')
+  print(object$Coefficients)
   print('Estimate, Std error, t value, Pr(>|t|)')
 
   cat('\nResidual standard error, numberX, on numberZ degrees of freedom\n')

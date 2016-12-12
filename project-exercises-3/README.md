@@ -167,15 +167,15 @@ coefficients.blm <- coef.blm <- function(object, ...) t(object$coefficients)
 coefficients(test_blm)
 ```
 
-    ##      (Intercept)          x
-    ## [1,]   0.4192213 -0.2570808
+    ##      (Intercept)        x
+    ## [1,]   0.2117622 1.069265
 
 ``` r
 coef(test_blm)
 ```
 
-    ##      (Intercept)          x
-    ## [1,]   0.4192213 -0.2570808
+    ##      (Intercept)        x
+    ## [1,]   0.2117622 1.069265
 
 ``` r
 # Test lm
@@ -183,7 +183,7 @@ coef(test_lm)
 ```
 
     ## (Intercept)           x 
-    ##   0.4565607  -0.3180524
+    ##   0.1304033   1.2429709
 
 #### predict
 
@@ -226,7 +226,7 @@ predict(test_blm, newdata)
 ```
 
     ## $means
-    ## [1] 0.3061337 0.2419317 0.3638887
+    ## [1] 0.9685022 0.3226858 0.9634446
 
 ``` r
 # lm method
@@ -234,7 +234,7 @@ predict(test_lm, newdata)
 ```
 
     ##         1         2         3 
-    ## 0.3166523 0.2372236 0.3881050
+    ## 1.0100788 0.2593469 1.0041995
 
 ``` r
 # blm method
@@ -242,11 +242,11 @@ predict(test_blm)
 ```
 
     ## $means
-    ##  [1] 0.3410030 0.2570038 0.1922194 0.3344329 0.3107906 0.4148933 0.2039252
-    ##  [8] 0.3439357 0.2717254 0.3261933 0.4111743 0.2395838 0.1782351 0.3090749
-    ## [15] 0.2853488 0.4177674 0.1988226 0.1909153 0.2615011 0.2209598 0.3222727
-    ## [22] 0.3772257 0.1794175 0.4038634 0.1800640 0.2213185 0.1928109 0.2859031
-    ## [29] 0.2478979 0.3224127
+    ##  [1] 0.9245613 0.4694480 0.5266712 0.6174817 0.9613401 0.6013718 0.8649643
+    ##  [8] 0.4857446 0.7931087 0.6369158 0.7042054 0.3270996 1.1327334 0.8061811
+    ## [15] 0.4593193 0.7299614 1.2521330 0.7784668 0.4012082 0.7569475 0.4349237
+    ## [22] 1.0562333 0.2823214 0.9194080 0.6832079 0.9398539 1.0896919 0.8087405
+    ## [29] 1.1298591 0.2376254
 
 ``` r
 # lm method
@@ -254,15 +254,26 @@ predict(test_lm)
 ```
 
     ##         1         2         3         4         5         6         7 
-    ## 0.3597915 0.2558703 0.1757210 0.3516632 0.3224137 0.4512063 0.1902031 
+    ## 0.9589995 0.4299511 0.4964706 0.6020336 1.0017532 0.5833065 0.8897207 
     ##         8         9        10        11        12        13        14 
-    ## 0.3634198 0.2740834 0.3414694 0.4466052 0.2343189 0.1584201 0.3202911 
+    ## 0.4488953 0.8061919 0.6246248 0.7028458 0.2644777 1.2009900 0.8213880 
     ##        15        16        17        18        19        20        21 
-    ## 0.2909378 0.4547620 0.1838903 0.1741077 0.2614342 0.2112778 0.3366190 
+    ## 0.4181770 0.7327860 1.3397865 0.7891714 0.3506255 0.7641561 0.3898183 
     ##        22        23        24        25        26        27        28 
-    ## 0.4046051 0.1598830 0.4375604 0.1606828 0.2117216 0.1764528 0.2916237 
+    ## 1.1120622 0.2124251 0.9530090 0.6784373 0.9767764 1.1509563 0.8243632 
     ##        29        30 
-    ## 0.2446048 0.3367921
+    ## 1.1976487 0.1604680
+
+``` r
+# to make like lm
+x <- rnorm(30)
+names(x) <- seq(1, length(x))
+
+# to extract the indexes
+as.numeric(names(x[x > 0.45])) # or which
+```
+
+    ##  [1]  7 10 12 13 14 16 18 20 23 25 29
 
 #### fitted
 
@@ -280,11 +291,12 @@ fitted(test_blm)
 ```
 
     ## $means
-    ##  [1] 0.3410030 0.2570038 0.1922194 0.3344329 0.3107906 0.4148933 0.2039252
-    ##  [8] 0.3439357 0.2717254 0.3261933 0.4111743 0.2395838 0.1782351 0.3090749
-    ## [15] 0.2853488 0.4177674 0.1988226 0.1909153 0.2615011 0.2209598 0.3222727
-    ## [22] 0.3772257 0.1794175 0.4038634 0.1800640 0.2213185 0.1928109 0.2859031
-    ## [29] 0.2478979 0.3224127
+    ##  [1] -0.38856051 -0.81351870  0.63278260 -0.39515237 -1.70517175
+    ##  [6]  0.47936530  1.73049525  0.26355275  0.12810693  0.91840499
+    ## [11] -0.43774630  1.33725163  1.93486388  1.37913707 -0.87633088
+    ## [16]  0.93391537 -1.19052878  2.20169344 -0.26994506  2.17105292
+    ## [21]  0.16860484  0.56460794  1.02923113  0.48660776  1.18642264
+    ## [26] -0.08190906 -1.20876192 -1.52937347  0.85936815 -0.15755810
 
 ``` r
 # Even if I give new data it is not going to do anything with it:
@@ -292,11 +304,12 @@ fitted(test_blm, newdata)
 ```
 
     ## $means
-    ##  [1] 0.3410030 0.2570038 0.1922194 0.3344329 0.3107906 0.4148933 0.2039252
-    ##  [8] 0.3439357 0.2717254 0.3261933 0.4111743 0.2395838 0.1782351 0.3090749
-    ## [15] 0.2853488 0.4177674 0.1988226 0.1909153 0.2615011 0.2209598 0.3222727
-    ## [22] 0.3772257 0.1794175 0.4038634 0.1800640 0.2213185 0.1928109 0.2859031
-    ## [29] 0.2478979 0.3224127
+    ##  [1] -0.38856051 -0.81351870  0.63278260 -0.39515237 -1.70517175
+    ##  [6]  0.47936530  1.73049525  0.26355275  0.12810693  0.91840499
+    ## [11] -0.43774630  1.33725163  1.93486388  1.37913707 -0.87633088
+    ## [16]  0.93391537 -1.19052878  2.20169344 -0.26994506  2.17105292
+    ## [21]  0.16860484  0.56460794  1.02923113  0.48660776  1.18642264
+    ## [26] -0.08190906 -1.20876192 -1.52937347  0.85936815 -0.15755810
 
 ``` r
 # Test lm
@@ -304,15 +317,15 @@ fitted(test_lm)
 ```
 
     ##         1         2         3         4         5         6         7 
-    ## 0.3597915 0.2558703 0.1757210 0.3516632 0.3224137 0.4512063 0.1902031 
+    ## 0.9589995 0.4299511 0.4964706 0.6020336 1.0017532 0.5833065 0.8897207 
     ##         8         9        10        11        12        13        14 
-    ## 0.3634198 0.2740834 0.3414694 0.4466052 0.2343189 0.1584201 0.3202911 
+    ## 0.4488953 0.8061919 0.6246248 0.7028458 0.2644777 1.2009900 0.8213880 
     ##        15        16        17        18        19        20        21 
-    ## 0.2909378 0.4547620 0.1838903 0.1741077 0.2614342 0.2112778 0.3366190 
+    ## 0.4181770 0.7327860 1.3397865 0.7891714 0.3506255 0.7641561 0.3898183 
     ##        22        23        24        25        26        27        28 
-    ## 0.4046051 0.1598830 0.4375604 0.1606828 0.2117216 0.1764528 0.2916237 
+    ## 1.1120622 0.2124251 0.9530090 0.6784373 0.9767764 1.1509563 0.8243632 
     ##        29        30 
-    ## 0.2446048 0.3367921
+    ## 1.1976487 0.1604680
 
 ``` r
 # How does lm deal with it?
@@ -320,15 +333,15 @@ fitted(test_lm, newdata)
 ```
 
     ##         1         2         3         4         5         6         7 
-    ## 0.3597915 0.2558703 0.1757210 0.3516632 0.3224137 0.4512063 0.1902031 
+    ## 0.9589995 0.4299511 0.4964706 0.6020336 1.0017532 0.5833065 0.8897207 
     ##         8         9        10        11        12        13        14 
-    ## 0.3634198 0.2740834 0.3414694 0.4466052 0.2343189 0.1584201 0.3202911 
+    ## 0.4488953 0.8061919 0.6246248 0.7028458 0.2644777 1.2009900 0.8213880 
     ##        15        16        17        18        19        20        21 
-    ## 0.2909378 0.4547620 0.1838903 0.1741077 0.2614342 0.2112778 0.3366190 
+    ## 0.4181770 0.7327860 1.3397865 0.7891714 0.3506255 0.7641561 0.3898183 
     ##        22        23        24        25        26        27        28 
-    ## 0.4046051 0.1598830 0.4375604 0.1606828 0.2117216 0.1764528 0.2916237 
+    ## 1.1120622 0.2124251 0.9530090 0.6784373 0.9767764 1.1509563 0.8243632 
     ##        29        30 
-    ## 0.2446048 0.3367921
+    ## 1.1976487 0.1604680
 
 ``` r
 # Don't care like I do. :)
@@ -343,11 +356,14 @@ If our posterior is distributed as **w** ∼ *N*(**m**, **S**) then compon
 You take the `level` parameter of the function and get the threshold quantiles by exploiting that a normal distribution is symmetric. So you want the quantiles to be `c(level/2, 1-level/2)`. From that, you can get the thresholds using the function `qnorm`.
 
 ``` r
-confint.blm <- function(object, level= 0.95, ...) {
+confint.blm <- function(object, parm = NULL, level= 0.95, ...) {
   theta_x = noresponse_matrix(object$formula, ...)
   beta = object$beta
   S_xy = object$posterior$S_xy
-
+  m_xy = object$posterior$m_xy
+  
+  if(parm == 'y'){
+    
   # Calculating Standard deviation to be used in qnorm
   sds = vector(length = nrow(theta_x))  
 
@@ -361,58 +377,98 @@ confint.blm <- function(object, level= 0.95, ...) {
   quantil_upper <- qnorm(p = (1 - (1 -level)/2), mean = fitted$means, sd = sds, lower.tail = F)
   
   quantiles = cbind(quantil_lower, quantil_upper)
-  colnames(quantiles) = c(print((1-level)/2), print((1 - (1 -level)/2)))
-  # It returns mean and sd
+  colnames(quantiles) = c((1-level)/2, (1 - (1 -level)/2))
+  
+  # it returns the confint of the fitted data
   return(quantiles)
+  }
+  
+  # Mean and variance of the coefficients
+  # I will give that as default
+  if(is.null(parm)){
+    parm = rownames(object$coefficients)
+  }
+  
+  quantil_lower <- qnorm(p = (1-level)/2, mean = m_xy[parm,], sd = sqrt(diag(S_xy)[parm]), lower.tail = F)
+  quantil_upper <- qnorm(p = (1 - (1 -level)/2), mean =m_xy[parm,], sd = sqrt(diag(S_xy)[parm]), lower.tail = F)
+  
+  quantiles = cbind(quantil_lower, quantil_upper)
+
+  colnames(quantiles) = c((1-level)/2, (1 - (1 -level)/2))
+  rownames(quantiles) = parm
+return(quantiles)  
 }
 
 # Test blm
-confint(test_blm, level = 0.95)
+confint(test_blm, parm = '(Intercept)', level = 0.95)
 ```
 
-    ## [1] 0.025
-    ## [1] 0.975
-
-    ##          0.025     0.975
-    ##  [1,] 1.760880 -1.078874
-    ##  [2,] 1.667831 -1.153823
-    ##  [3,] 1.628242 -1.243803
-    ##  [4,] 1.751902 -1.083036
-    ##  [5,] 1.721965 -1.100384
-    ##  [6,] 1.880947 -1.051161
-    ##  [7,] 1.633367 -1.225516
-    ##  [8,] 1.764979 -1.077108
-    ##  [9,] 1.680712 -1.137261
-    ## [10,] 1.741046 -1.088660
-    ## [11,] 1.874093 -1.051744
-    ## [12,] 1.654465 -1.175297
-    ## [13,] 1.623260 -1.266790
-    ## [14,] 1.719938 -1.101788
-    ## [15,] 1.693932 -1.123234
-    ## [16,] 1.886301 -1.050767
-    ## [17,] 1.631025 -1.233380
-    ## [18,] 1.627725 -1.245894
-    ## [19,] 1.671612 -1.148609
-    ## [20,] 1.642406 -1.200486
-    ## [21,] 1.736039 -1.091494
-    ## [22,] 1.815429 -1.060978
-    ## [23,] 1.623634 -1.264799
-    ## [24,] 1.860861 -1.053134
-    ## [25,] 1.623842 -1.263714
-    ## [26,] 1.642616 -1.199979
-    ## [27,] 1.628480 -1.242858
-    ## [28,] 1.694496 -1.122690
-    ## [29,] 1.660591 -1.164796
-    ## [30,] 1.736216 -1.091391
+    ##                 0.025      0.975
+    ## (Intercept) 0.7176081 -0.2940836
 
 ``` r
+# Test blm
+confint(test_blm, parm = 'y', level = 0.95)
+```
+
+    ##           0.025       0.975
+    ##  [1,] 1.3136292 -2.09075025
+    ##  [2,] 1.1179956 -2.74503302
+    ##  [3,] 2.0434107 -0.77784553
+    ##  [4,] 1.3102306 -2.10053539
+    ##  [5,] 0.8146601 -4.22500360
+    ##  [6,] 1.9032613 -0.94453073
+    ##  [7,] 3.3854878  0.07550267
+    ##  [8,] 1.7262424 -1.19913692
+    ##  [9,] 1.6264441 -1.37023028
+    ## [10,] 2.3371459 -0.50033596
+    ## [11,] 1.2885778 -2.16407045
+    ## [12,] 2.8423251 -0.16782180
+    ## [13,] 3.6886482  0.18107956
+    ## [14,] 2.8972925 -0.13901837
+    ## [15,] 1.0925852 -2.84524691
+    ## [16,] 2.3543150 -0.48648429
+    ## [17,] 0.9760780 -3.35713557
+    ## [18,] 4.1013400  0.30204689
+    ## [19,] 1.3770704 -1.91696056
+    ## [20,] 4.0530991  0.28900669
+    ## [21,] 1.6554147 -1.31820498
+    ## [22,] 1.9796257 -0.85040982
+    ## [23,] 2.4625165 -0.40405427
+    ## [24,] 1.9096045 -0.93638894
+    ## [25,] 2.6507919 -0.27794663
+    ## [26,] 1.4873170 -1.65113516
+    ## [27,] 0.9697977 -3.38732156
+    ## [28,] 0.8664411 -3.92518802
+    ## [29,] 2.2729324 -0.55419606
+    ## [30,] 1.4414483 -1.75656446
+
+``` r
+# Test blm
+confint(test_blm, parm = 'x', level = 0.95)
+```
+
+    ##      0.025     0.975
+    ## x 1.989947 0.1485817
+
+``` r
+# Test blm
+confint(test_blm, parm = 1, level = 0.95)
+```
+
+    ##       0.025      0.975
+    ## 1 0.7176081 -0.2940836
+
+``` r
+# I want my confint function to accept any case of written 'intercept'
+
 # Test lm
 confint(test_lm)
 ```
 
     ##                  2.5 %   97.5 %
-    ## (Intercept) -0.3767579 1.289879
-    ## x           -1.6786635 1.042559
+    ## (Intercept) -0.7770572 1.037864
+    ## x           -0.4303242 2.916266
 
 #### deviance
 
@@ -430,14 +486,14 @@ deviance.blm <- function(object, ...){
 deviance(test_blm)  
 ```
 
-    ## [1] 32.54917
+    ## [1] 85.09719
 
 ``` r
 # Test lm
 deviance(test_lm)
 ```
 
-    ## [1] 32.53873
+    ## [1] 34.67814
 
 #### residuals
 
@@ -456,12 +512,12 @@ residuals.blm <- function(object, ...){
 residuals(test_blm)
 ```
 
-    ##  [1]  1.95264568  0.52767080 -1.30733005  1.09707652 -0.12169468
-    ##  [6]  0.18230506 -1.11036184 -0.48501908 -0.74422730  0.72493202
-    ## [11] -1.41571563 -0.17141728  3.00994755 -0.08691707  0.72925350
-    ## [16] -0.26632673  0.64210798  0.99224320 -0.60993841 -1.24853764
-    ## [21] -0.01660256 -0.67023482 -1.47740878  0.52718605  0.19520361
-    ## [26]  0.40343764 -1.53905782  1.36146486 -0.19559781 -0.73934654
+    ##  [1]  2.60985661  2.54273829 -1.22449976  1.92481067  2.49256007
+    ##  [6]  1.70174124 -0.57680084 -0.01629578 -1.04599150 -1.54607888
+    ## [11]  2.33719824 -1.46456266  0.11473273 -1.52983265  1.32243484
+    ## [16]  0.62275804  4.37103226 -0.71432204  0.43742576 -2.71623790
+    ## [21]  0.26338034  0.73861035 -0.15875296  0.25228073 -0.40903872
+    ## [26] -1.14058994  3.30167079  0.19682930 -0.87869825  0.72304966
 
 ``` r
 # Test it for lm
@@ -469,15 +525,15 @@ residuals(test_lm)
 ```
 
     ##           1           2           3           4           5           6 
-    ##  1.93385716  0.52880427 -1.29083172  1.07984621 -0.13331777  0.14599204 
+    ##  1.26229658  1.29926844 -1.08818771  0.92762472 -0.21436483  1.59780001 
     ##           7           8           9          10          11          12 
-    ## -1.09663976 -0.50450316 -0.74658533  0.70965589 -1.45114661 -0.16615233 
+    ##  0.26397368 -0.20163828 -1.72407646 -1.25229866  1.19660610 -0.39178877 
     ##          13          14          15          16          17          18 
-    ##  3.02976253 -0.09813325  0.72366443 -0.30332139  0.65704024  1.00905082 
+    ##  0.84860663 -0.97208358  0.02792697  0.82388738  1.84071699  0.69820003 
     ##          19          20          21          22          23          24 
-    ## -0.60987154 -1.23885563 -0.03094885 -0.69761425 -1.45787423  0.49348899 
+    ## -0.18314484 -1.30934108  0.04216685  0.19115611  0.65805304 -0.21412051 
     ##          25          26          27          28          29          30 
-    ##  0.21458482  0.41303455 -1.52269977  1.35574432 -0.19230470 -0.75372601
+    ##  0.09894662 -2.19927542  0.94195260 -2.15690732 -1.21697879  0.40502352
 
 #### plot
 
@@ -496,19 +552,29 @@ plot.blm <- function(object, ...) {
     resid = residuals(object)
     plot(fit, resid, pch = 20, xlab = 'Fitted values', ylab = 'Residuals', main = 'Residuals vs Fitted') 
     abline(h = 0, col = "gray60", lty = 2)
+    # I need to produce the red lines, but i don't know how
+  }
+  if(is.null(data) == FALSE && ncol(data) > 2){
+    # take the m_xy and make eigen decomposition of this matrix and select the variable that explains most of the variance
+    
   }
 }
+
+
+
+
+
 
 plot(test_blm)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-10-1.png)
+![](README_files/figure-markdown_github/unnamed-chunk-9-1.png)
 
 ``` r
 plot(test_lm)
 ```
 
-![](README_files/figure-markdown_github/unnamed-chunk-10-2.png)![](README_files/figure-markdown_github/unnamed-chunk-10-3.png)![](README_files/figure-markdown_github/unnamed-chunk-10-4.png)![](README_files/figure-markdown_github/unnamed-chunk-10-5.png)
+![](README_files/figure-markdown_github/unnamed-chunk-9-2.png)![](README_files/figure-markdown_github/unnamed-chunk-9-3.png)![](README_files/figure-markdown_github/unnamed-chunk-9-4.png)![](README_files/figure-markdown_github/unnamed-chunk-9-5.png)
 
 ``` r
 # 1- residuals versus fitted data
@@ -545,8 +611,8 @@ print(test_blm)
     ## 
     ## Coefficients:
 
-    ##      (Intercept)          x
-    ## [1,]   0.4192213 -0.2570808
+    ##      (Intercept)        x
+    ## [1,]   0.2117622 1.069265
 
 ``` r
 print(test_lm)
@@ -558,7 +624,7 @@ print(test_lm)
     ## 
     ## Coefficients:
     ## (Intercept)            x  
-    ##      0.4566      -0.3181
+    ##      0.1304       1.2430
 
 #### summary
 
@@ -568,118 +634,6 @@ It does more than this, however. It returns an object with summary information. 
 
 ``` r
 # As the name says, the summary function should be summary of everything
-getAnywhere(summary.lm)
-```
-
-    ## A single object matching 'summary.lm' was found
-    ## It was found in the following places
-    ##   package:stats
-    ##   registered S3 method for summary from namespace stats
-    ##   namespace:stats
-    ## with value
-    ## 
-    ## function (object, correlation = FALSE, symbolic.cor = FALSE, 
-    ##     ...) 
-    ## {
-    ##     z <- object
-    ##     p <- z$rank
-    ##     rdf <- z$df.residual
-    ##     if (p == 0) {
-    ##         r <- z$residuals
-    ##         n <- length(r)
-    ##         w <- z$weights
-    ##         if (is.null(w)) {
-    ##             rss <- sum(r^2)
-    ##         }
-    ##         else {
-    ##             rss <- sum(w * r^2)
-    ##             r <- sqrt(w) * r
-    ##         }
-    ##         resvar <- rss/rdf
-    ##         ans <- z[c("call", "terms", if (!is.null(z$weights)) "weights")]
-    ##         class(ans) <- "summary.lm"
-    ##         ans$aliased <- is.na(coef(object))
-    ##         ans$residuals <- r
-    ##         ans$df <- c(0L, n, length(ans$aliased))
-    ##         ans$coefficients <- matrix(NA, 0L, 4L)
-    ##         dimnames(ans$coefficients) <- list(NULL, c("Estimate", 
-    ##             "Std. Error", "t value", "Pr(>|t|)"))
-    ##         ans$sigma <- sqrt(resvar)
-    ##         ans$r.squared <- ans$adj.r.squared <- 0
-    ##         return(ans)
-    ##     }
-    ##     if (is.null(z$terms)) 
-    ##         stop("invalid 'lm' object:  no 'terms' component")
-    ##     if (!inherits(object, "lm")) 
-    ##         warning("calling summary.lm(<fake-lm-object>) ...")
-    ##     Qr <- qr.lm(object)
-    ##     n <- NROW(Qr$qr)
-    ##     if (is.na(z$df.residual) || n - p != z$df.residual) 
-    ##         warning("residual degrees of freedom in object suggest this is not an \"lm\" fit")
-    ##     r <- z$residuals
-    ##     f <- z$fitted.values
-    ##     w <- z$weights
-    ##     if (is.null(w)) {
-    ##         mss <- if (attr(z$terms, "intercept")) 
-    ##             sum((f - mean(f))^2)
-    ##         else sum(f^2)
-    ##         rss <- sum(r^2)
-    ##     }
-    ##     else {
-    ##         mss <- if (attr(z$terms, "intercept")) {
-    ##             m <- sum(w * f/sum(w))
-    ##             sum(w * (f - m)^2)
-    ##         }
-    ##         else sum(w * f^2)
-    ##         rss <- sum(w * r^2)
-    ##         r <- sqrt(w) * r
-    ##     }
-    ##     resvar <- rss/rdf
-    ##     if (is.finite(resvar) && resvar < (mean(f)^2 + var(f)) * 
-    ##         1e-30) 
-    ##         warning("essentially perfect fit: summary may be unreliable")
-    ##     p1 <- 1L:p
-    ##     R <- chol2inv(Qr$qr[p1, p1, drop = FALSE])
-    ##     se <- sqrt(diag(R) * resvar)
-    ##     est <- z$coefficients[Qr$pivot[p1]]
-    ##     tval <- est/se
-    ##     ans <- z[c("call", "terms", if (!is.null(z$weights)) "weights")]
-    ##     ans$residuals <- r
-    ##     ans$coefficients <- cbind(est, se, tval, 2 * pt(abs(tval), 
-    ##         rdf, lower.tail = FALSE))
-    ##     dimnames(ans$coefficients) <- list(names(z$coefficients)[Qr$pivot[p1]], 
-    ##         c("Estimate", "Std. Error", "t value", "Pr(>|t|)"))
-    ##     ans$aliased <- is.na(coef(object))
-    ##     ans$sigma <- sqrt(resvar)
-    ##     ans$df <- c(p, rdf, NCOL(Qr$qr))
-    ##     if (p != attr(z$terms, "intercept")) {
-    ##         df.int <- if (attr(z$terms, "intercept")) 
-    ##             1L
-    ##         else 0L
-    ##         ans$r.squared <- mss/(mss + rss)
-    ##         ans$adj.r.squared <- 1 - (1 - ans$r.squared) * ((n - 
-    ##             df.int)/rdf)
-    ##         ans$fstatistic <- c(value = (mss/(p - df.int))/resvar, 
-    ##             numdf = p - df.int, dendf = rdf)
-    ##     }
-    ##     else ans$r.squared <- ans$adj.r.squared <- 0
-    ##     ans$cov.unscaled <- R
-    ##     dimnames(ans$cov.unscaled) <- dimnames(ans$coefficients)[c(1, 
-    ##         1)]
-    ##     if (correlation) {
-    ##         ans$correlation <- (R * resvar)/outer(se, se)
-    ##         dimnames(ans$correlation) <- dimnames(ans$cov.unscaled)
-    ##         ans$symbolic.cor <- symbolic.cor
-    ##     }
-    ##     if (!is.null(z$na.action)) 
-    ##         ans$na.action <- z$na.action
-    ##     class(ans) <- "summary.lm"
-    ##     ans
-    ## }
-    ## <bytecode: 0x0000000016705f48>
-    ## <environment: namespace:stats>
-
-``` r
 summary(test_lm)
 ```
 
@@ -688,30 +642,96 @@ summary(test_lm)
     ## lm(formula = y ~ x)
     ## 
     ## Residuals:
-    ##     Min      1Q  Median      3Q     Max 
-    ## -1.5227 -0.7343 -0.1157  0.6250  3.0298 
+    ##      Min       1Q   Median       3Q      Max 
+    ## -2.19928 -0.82701  0.07056  0.84243  1.84072 
     ## 
     ## Coefficients:
     ##             Estimate Std. Error t value Pr(>|t|)
-    ## (Intercept)   0.4566     0.4068   1.122    0.271
-    ## x            -0.3181     0.6642  -0.479    0.636
+    ## (Intercept)   0.1304     0.4430   0.294    0.771
+    ## x             1.2430     0.8169   1.522    0.139
     ## 
-    ## Residual standard error: 1.078 on 28 degrees of freedom
-    ## Multiple R-squared:  0.008122,   Adjusted R-squared:  -0.0273 
-    ## F-statistic: 0.2293 on 1 and 28 DF,  p-value: 0.6358
+    ## Residual standard error: 1.113 on 28 degrees of freedom
+    ## Multiple R-squared:  0.07637,    Adjusted R-squared:  0.04339 
+    ## F-statistic: 2.315 on 1 and 28 DF,  p-value: 0.1393
 
 ``` r
-# The easiest way:
 summary.blm <- function(object, ...) {
+  # Defining the class summary
+  obj <- list(data = object$data,
+              Call = object$sys,
+              Residuals = residuals(object),
+              Coefficients = object$coefficients)
+  class(obj) <- 'summary.blm'
+  obj
+}
+
+summary(test_blm)
+```
+
+    ## $data
+    ##             y          x
+    ## 1   2.2212961 0.66662554
+    ## 2   1.7292196 0.24099341
+    ## 3  -0.5917172 0.29450987
+    ## 4   1.5296583 0.37943786
+    ## 5   0.7873883 0.70102187
+    ## 6   2.1811065 0.36437150
+    ## 7   1.1536944 0.61088910
+    ## 8   0.2472570 0.25623440
+    ## 9  -0.9178846 0.54368814
+    ## 10 -0.6276739 0.39761301
+    ## 11  1.8994519 0.46054375
+    ## 12 -0.1273110 0.10786607
+    ## 13  2.0495966 0.86131269
+    ## 14 -0.1506956 0.55591377
+    ## 15  0.4461040 0.23152082
+    ## 16  1.5566734 0.48463136
+    ## 17  3.1805035 0.97297782
+    ## 18  1.4873714 0.52999472
+    ## 19  0.1674807 0.17717405
+    ## 20 -0.5451850 0.50986933
+    ## 21  0.4319852 0.20870560
+    ## 22  1.3032183 0.78976814
+    ## 23  0.8704782 0.06598849
+    ## 24  0.7388885 0.66180603
+    ## 25  0.7773839 0.44090649
+    ## 26 -1.2224990 0.68092749
+    ## 27  2.0929089 0.82105937
+    ## 28 -1.3325442 0.55830735
+    ## 29 -0.0193301 0.85862455
+    ## 30  0.5654916 0.02418777
+    ## 
+    ## $Call
+    ## blm(y ~ x, alpha = 1.5, beta = 2)
+    ## 
+    ## $Residuals
+    ##  [1]  2.60985661  2.54273829 -1.22449976  1.92481067  2.49256007
+    ##  [6]  1.70174124 -0.57680084 -0.01629578 -1.04599150 -1.54607888
+    ## [11]  2.33719824 -1.46456266  0.11473273 -1.52983265  1.32243484
+    ## [16]  0.62275804  4.37103226 -0.71432204  0.43742576 -2.71623790
+    ## [21]  0.26338034  0.73861035 -0.15875296  0.25228073 -0.40903872
+    ## [26] -1.14058994  3.30167079  0.19682930 -0.87869825  0.72304966
+    ## 
+    ## $Coefficients
+    ##                  [,1]
+    ## (Intercept) 0.2117622
+    ## x           1.0692646
+    ## 
+    ## attr(,"class")
+    ## [1] "summary.blm"
+
+``` r
+print.summary.blm <- function(object, ...) {
   sapply(object$data, summary)
   cat('\nCall:\n')
-  print(object$sys)
+  print(object$Call)
   
   cat('\nResiduals:\n')
-  print('Nothing yet')
+  print(summary(object$Residuals))
   #sapply(object$residuals, summary) 
   
   cat('\nCoefficients:\n')
+  print(object$Coefficients)
   print('Estimate, Std error, t value, Pr(>|t|)')
 
   cat('\nResidual standard error, numberX, on numberZ degrees of freedom\n')
@@ -727,9 +747,13 @@ summary(test_blm)
     ## blm(y ~ x, alpha = 1.5, beta = 2)
     ## 
     ## Residuals:
-    ## [1] "Nothing yet"
+    ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+    ## -2.7160 -0.8376  0.2246  0.4177  1.6070  4.3710 
     ## 
     ## Coefficients:
+    ##                  [,1]
+    ## (Intercept) 0.2117622
+    ## x           1.0692646
     ## [1] "Estimate, Std error, t value, Pr(>|t|)"
     ## 
     ## Residual standard error, numberX, on numberZ degrees of freedom
